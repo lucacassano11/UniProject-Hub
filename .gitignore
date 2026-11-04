@@ -1,0 +1,49 @@
+# .NET build artifacts
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+TestResults/
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+
+# IDEs & Editors
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# LaTeX auxiliary files
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store

@@ -1,0 +1,77 @@
+x-backend-env: &backend-env
+  ConnectionStrings__Default: "server=db;port=3306;database=${MYSQL_DATABASE:-uniprojecthub};user=root;password=${MYSQL_ROOT_PASSWORD:-uph_dev_mysql_password_change_me}"
+  Jwt__Secret: "${JWT_SECRET:-uph_dev_jwt_secret_key_minimum_32_chars_change_me!!}"
+
+services:
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-uph_dev_mysql_password_change_me}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE:-uniprojecthub}"
+    ports: ["3306:3306"]
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p\"$$MYSQL_ROOT_PASSWORD\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  auth:
+    build: { context: ., dockerfile: services/auth/Dockerfile }
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      <<: *backend-env
+
+  sessioni:
+    build: { context: ., dockerfile: services/sessioni/Dockerfile }
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      <<: *backend-env
+
+  gruppi:
+    build: { context: ., dockerfile: services/gruppi/Dockerfile }
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      <<: *backend-env
+
+  consegne:
+    build: { context: ., dockerfile: services/consegne/Dockerfile }
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      <<: *backend-env
+
+  notifiche:
+    build: { context: ., dockerfile: services/notifiche/Dockerfile }
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      <<: *backend-env
+
+  log:
+    build: { context: ., dockerfile: services/log/Dockerfile }
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      <<: *backend-env
+
+  sicurezza:
+    build: { context: ., dockerfile: services/sicurezza/Dockerfile }
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      <<: *backend-env
+
+  gateway:
+    build: { context: ., dockerfile: gateway/Dockerfile }
+    ports: ["${GATEWAY_PORT:-8080}:8080"]
+    environment:
+      Cors__AllowedOrigins__0: "http://localhost:${FRONTEND_PORT:-5173}"
+      Cors__AllowedOrigins__1: "http://127.0.0.1:${FRONTEND_PORT:-5173}"
+    depends_on: [auth, sessioni, gruppi, consegne, notifiche, log, sicurezza]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_BASE: "${VITE_API_BASE:-http://localhost:8080}"
+    ports: ["${FRONTEND_PORT:-5173}:80"]
+    depends_on: [gateway]
