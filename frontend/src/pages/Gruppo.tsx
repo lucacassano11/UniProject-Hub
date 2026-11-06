@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import {
@@ -12,6 +12,16 @@ import {
 import { nomeDaEmail, iniziali, coloreAvatar } from "../ui";
 
 const ORDINE = ["NUOVO", "ABSTRACT_CONSEGNATO", "ABSTRACT_VALUTATO", "PROGETTO_CONSEGNATO", "PROGETTO_VALUTATO"];
+
+async function fetchGruppoData(idGruppo: number, email: string) {
+  const grp = await getGruppo(idGruppo);
+  const accessi = grp?.capogruppoEmail === email
+    ? await listAccessi(idGruppo).catch(() => [])
+    : [];
+  const abs = await getAbstract(idGruppo).catch(() => null);
+  const prog = await getProgetto(idGruppo).catch(() => null);
+  return { grp, accessi, abs, prog };
+}
 
 export default function Gruppo() {
   const { id = "" } = useParams();
@@ -32,18 +42,34 @@ export default function Gruppo() {
   const isCapo = g?.capogruppoEmail === email;
   const idx = g ? ORDINE.indexOf(g.stato) : 0;
 
-  async function load() {
-    const grp = await getGruppo(idGruppo);
-    setG(grp);
-    if (grp?.capogruppoEmail === email) setAccessi(await listAccessi(idGruppo).catch(() => []));
-    setAbs(await getAbstract(idGruppo).catch(() => null));
-    setProg(await getProgetto(idGruppo).catch(() => null));
+  useEffect(() => {
+    let mounted = true;
+    fetchGruppoData(idGruppo, email).then(
+      (data) => {
+        if (!mounted) return;
+        setG(data.grp);
+        setAccessi(data.accessi);
+        setAbs(data.abs);
+        setProg(data.prog);
+      },
+      () => {
+        if (mounted) setErr("Errore nel caricamento");
+      },
+    );
+    return () => { mounted = false; };
+  }, [idGruppo, email]);
+
+  async function reload() {
+    const data = await fetchGruppoData(idGruppo, email);
+    setG(data.grp);
+    setAccessi(data.accessi);
+    setAbs(data.abs);
+    setProg(data.prog);
   }
-  useEffect(() => { load().catch(() => setErr("Errore nel caricamento")); }, [idGruppo]);
 
   async function run(fn: () => Promise<unknown>, msg: string) {
     setErr("");
-    try { await fn(); await load(); } catch (e) { setErr(e instanceof Error ? e.message : msg); }
+    try { await fn(); await reload(); } catch (e) { setErr(e instanceof Error ? e.message : msg); }
   }
   async function abbandona() {
     setErr("");
@@ -257,36 +283,36 @@ export default function Gruppo() {
   );
 }
 
-const secHeader: React.CSSProperties = {
+const secHeader: CSSProperties = {
   padding: "16px 20px", borderBottom: "1px solid var(--border)",
   display: "flex", justifyContent: "space-between", alignItems: "center",
 };
-const inp: React.CSSProperties = {
+const inp: CSSProperties = {
   flex: 1, padding: "8px 12px", background: "var(--bg)", border: "1px solid var(--border)",
   borderRadius: 6, color: "var(--text)", fontSize: 13, outline: "none", minWidth: 200,
 };
-const ta: React.CSSProperties = {
+const ta: CSSProperties = {
   width: "100%", padding: "12px 14px", background: "var(--bg)", border: "1px solid var(--border)",
   borderRadius: 8, color: "var(--text)", fontSize: 14, fontFamily: "inherit", resize: "vertical", minHeight: 90, outline: "none",
 };
-const absBox: React.CSSProperties = {
+const absBox: CSSProperties = {
   background: "var(--bg)", borderRadius: 8, padding: 14, fontSize: 13, color: "#e2e8f0", marginTop: 10,
 };
-function badge(color: string): React.CSSProperties {
+function badge(color: string): CSSProperties {
   return { fontSize: 11, padding: "3px 8px", borderRadius: 20, fontWeight: 600, color, background: `${color}26` };
 }
-function pill(color: string): React.CSSProperties {
+function pill(color: string): CSSProperties {
   return { display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px",
     background: `${color}1a`, border: `1px solid ${color}40`, borderRadius: 8, color, fontSize: 13, fontWeight: 600 };
 }
-function av(bg: string, size = 36): React.CSSProperties {
+function av(bg: string, size = 36): CSSProperties {
   return { width: size, height: size, borderRadius: "50%", background: bg, display: "flex",
     alignItems: "center", justifyContent: "center", fontSize: size < 32 ? 10 : 13, fontWeight: 700, color: "#fff", flexShrink: 0 };
 }
-function dot(bg: string, color: string): React.CSSProperties {
+function dot(bg: string, color: string): CSSProperties {
   return { width: 28, height: 28, borderRadius: "50%", background: bg, color, display: "flex",
     alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0 };
 }
-function btn(bg: string): React.CSSProperties {
+function btn(bg: string): CSSProperties {
   return { background: bg, color: "#fff", border: "none", padding: "6px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", fontWeight: 600 };
 }

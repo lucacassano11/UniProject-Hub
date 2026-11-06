@@ -1,10 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import {
   listGruppiSessione, listMieiGruppi, createGruppo, chiediAccesso, type Gruppo,
 } from "../api/gruppi";
 import { nomeDaEmail, iniziali, coloreAvatar } from "../ui";
+
+async function fetchHomeGruppiData(sessione: string) {
+  const tutti = await listGruppiSessione(sessione);
+  const miei = await listMieiGruppi();
+  return { tutti, mio: miei.find((g) => g.idSessione === sessione) ?? null };
+}
 
 export default function HomeGruppi() {
   const nav = useNavigate();
@@ -14,13 +20,20 @@ export default function HomeGruppi() {
   const [search, setSearch] = useState("");
   const [err, setErr] = useState("");
 
-  async function load() {
-    const tutti = await listGruppiSessione(sessione);
-    setGruppi(tutti);
-    const miei = await listMieiGruppi();
-    setMioGruppo(miei.find((g) => g.idSessione === sessione) ?? null);
-  }
-  useEffect(() => { load().catch(() => setErr("Errore nel caricamento dei gruppi")); }, []);
+  useEffect(() => {
+    let mounted = true;
+    fetchHomeGruppiData(sessione).then(
+      ({ tutti, mio }) => {
+        if (!mounted) return;
+        setGruppi(tutti);
+        setMioGruppo(mio);
+      },
+      () => {
+        if (mounted) setErr("Errore nel caricamento dei gruppi");
+      },
+    );
+    return () => { mounted = false; };
+  }, [sessione]);
 
   async function crea() {
     setErr("");
@@ -29,8 +42,12 @@ export default function HomeGruppi() {
   }
   async function richiedi(id: number) {
     setErr("");
-    try { await chiediAccesso(id); await load(); }
-    catch (e) { setErr(e instanceof Error ? e.message : "Richiesta non riuscita"); }
+    try {
+      await chiediAccesso(id);
+      const { tutti, mio } = await fetchHomeGruppiData(sessione);
+      setGruppi(tutti);
+      setMioGruppo(mio);
+    } catch (e) { setErr(e instanceof Error ? e.message : "Richiesta non riuscita"); }
   }
 
   const visibili = gruppi.filter((g) =>
@@ -107,26 +124,26 @@ export default function HomeGruppi() {
   );
 }
 
-const alertBox: React.CSSProperties = {
+const alertBox: CSSProperties = {
   background: "rgba(234,179,8,0.1)", border: "1px solid rgba(234,179,8,0.3)", borderRadius: 10,
   padding: "14px 20px", marginBottom: 20, fontSize: 14, color: "#eab308",
   display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
 };
-const card: React.CSSProperties = {
+const card: CSSProperties = {
   background: "var(--panel)", borderRadius: 12, padding: 20, border: "1px solid var(--border)",
 };
-const badgeGreen: React.CSSProperties = {
+const badgeGreen: CSSProperties = {
   fontSize: 11, padding: "3px 8px", borderRadius: 20, fontWeight: 600,
   background: "rgba(34,197,94,0.15)", color: "#22c55e",
 };
-const badgeRed: React.CSSProperties = {
+const badgeRed: CSSProperties = {
   fontSize: 11, padding: "3px 8px", borderRadius: 20, fontWeight: 600,
   background: "rgba(239,68,68,0.15)", color: "#ef4444",
 };
-const btnFull: React.CSSProperties = {
+const btnFull: CSSProperties = {
   width: "100%", marginTop: 8, padding: "8px 14px", background: "var(--accent)", color: "#fff",
   border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer",
 };
-const btnDisabled: React.CSSProperties = {
+const btnDisabled: CSSProperties = {
   ...btnFull, background: "var(--border)", color: "#64748b", cursor: "not-allowed",
 };

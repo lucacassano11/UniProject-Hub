@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties, type MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { listSessions, createSession, deleteSession, type Session } from "../api/sessioni";
@@ -9,18 +9,24 @@ export default function HomeSessioni() {
   const [voto, setVoto] = useState(30);
   const nav = useNavigate();
 
-  async function load() { setSessions(await listSessions()); }
-  useEffect(() => { load().catch(() => {}); }, []);
+  useEffect(() => {
+    let mounted = true;
+    listSessions().then(
+      (data) => { if (mounted) setSessions(data); },
+      () => { /* silenzioso */ },
+    );
+    return () => { mounted = false; };
+  }, []);
 
   async function create() {
     await createSession(voto);
     setShowModal(false);
     setVoto(30);
-    await load();
+    setSessions(await listSessions());
   }
-  async function remove(id: string, e: React.MouseEvent) {
+  async function remove(id: string, e: MouseEvent<HTMLButtonElement>) {
     e.stopPropagation();
-    try { await deleteSession(id); await load(); }
+    try { await deleteSession(id); setSessions(await listSessions()); }
     catch { alert("Impossibile eliminare la sessione (potrebbe avere gruppi)"); }
   }
 
@@ -82,7 +88,7 @@ function Stat({ val, lbl }: { val: number; lbl: string }) {
   );
 }
 
-const overlay: React.CSSProperties = {
+const overlay: CSSProperties = {
   position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 100,
   display: "flex", alignItems: "center", justifyContent: "center",
 };

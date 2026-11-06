@@ -1,8 +1,7 @@
 # .NET build artifacts
 [Bb]in/
 [Oo]bj/
-[Ll]og/
-[Ll]ogs/
+/[Ll]ogs/
 TestResults/
 *.user
 *.userosscache

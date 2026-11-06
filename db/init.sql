@@ -175,4 +175,4 @@ INSERT INTO docenti (email) VALUES ('mario.rossi@unibo.it');
 INSERT INTO gestori_sicurezza (email) VALUES ('anna.bianchi@unibo.it');
 
 INSERT INTO sessioni (id_sessione, voto_massimo, data_creazione_sessione, docente_email)
-  VALUES ('AB3XK9MQ', 30, '2026-03-01', 'mario.rossi@unibo.it');
+  VALUES ('AB3XK9MQ', 30, CURDATE(), 'mario.rossi@unibo.it');

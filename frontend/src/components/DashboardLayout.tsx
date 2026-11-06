@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { listNotifiche, contaNonLette, segnaLetta, type Notifica } from "../api/notifiche";
 import { nomeDaEmail, iniziali, coloreAvatar } from "../ui";
@@ -7,7 +7,7 @@ const ruoloLabel: Record<string, string> = {
   DOCENTE: "Docente", STUDENTE: "Studente", GESTORE_SICUREZZA: "Gestore Sicurezza",
 };
 
-export default function DashboardLayout({ children, active }: { children: React.ReactNode; active?: string }) {
+export default function DashboardLayout({ children, active }: { children: ReactNode; active?: string }) {
   const nav = useNavigate();
   const ruolo = sessionStorage.getItem("ruolo") ?? "";
   const email = sessionStorage.getItem("email") ?? "";
@@ -17,13 +17,20 @@ export default function DashboardLayout({ children, active }: { children: React.
 
   function logout() { sessionStorage.clear(); nav("/login"); }
 
-  async function refresh() {
-    try { setNonLette((await contaNonLette()).nonLette); } catch { /* silenzioso */ }
-  }
   useEffect(() => {
-    refresh();
-    const t = setInterval(refresh, 12000);
-    return () => clearInterval(t);
+    let mounted = true;
+    const poll = () => {
+      contaNonLette().then(
+        (res) => { if (mounted) setNonLette(res.nonLette); },
+        () => { /* silenzioso */ },
+      );
+    };
+    poll();
+    const t = setInterval(poll, 12000);
+    return () => {
+      mounted = false;
+      clearInterval(t);
+    };
   }, []);
 
   async function toggleNotif() {
@@ -33,7 +40,7 @@ export default function DashboardLayout({ children, active }: { children: React.
   }
   async function leggi(n: Notifica) {
     if (!n.letta) { try { await segnaLetta(n.idNotifica); } catch { /* silenzioso */ } }
-    await refresh();
+    try { setNonLette((await contaNonLette()).nonLette); } catch { /* silenzioso */ }
     setNotifiche(await listNotifiche(false).catch(() => notifiche));
   }
 
@@ -106,7 +113,7 @@ export default function DashboardLayout({ children, active }: { children: React.
   );
 }
 
-function navStyle(activeItem: boolean): React.CSSProperties {
+function navStyle(activeItem: boolean): CSSProperties {
   return {
     display: "block", padding: "10px 12px", borderRadius: 8, marginBottom: 2,
     fontSize: 14, textDecoration: "none",
@@ -116,7 +123,7 @@ function navStyle(activeItem: boolean): React.CSSProperties {
   };
 }
 
-const badge: React.CSSProperties = {
+const badge: CSSProperties = {
   background: "#ef4444", color: "#fff", borderRadius: 999, fontSize: 11, fontWeight: 700,
   minWidth: 18, height: 18, padding: "0 5px", display: "flex", alignItems: "center", justifyContent: "center",
 };

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { register } from "../api/auth";
-import { Field } from "./Login";
+import { Field } from "../components/Field";
 
 export default function Registrazione() {
   const [email, setEmail] = useState("");
@@ -11,7 +11,7 @@ export default function Registrazione() {
   const [error, setError] = useState("");
   const nav = useNavigate();
 
-  async function submit(e: React.FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     if (password !== conferma) { setError("Le password non coincidono"); return; }

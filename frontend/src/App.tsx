@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Registrazione from "./pages/Registrazione";
@@ -25,7 +26,7 @@ function Home() {
   );
 }
 
-function RequireDocente({ children }: { children: React.ReactNode }) {
+function RequireDocente({ children }: { children: ReactNode }) {
   const authed = !!sessionStorage.getItem("token");
   const ruolo = sessionStorage.getItem("ruolo");
   if (!authed) return <Navigate to="/login" />;
@@ -33,7 +34,7 @@ function RequireDocente({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function RequireStudente({ children }: { children: React.ReactNode }) {
+function RequireStudente({ children }: { children: ReactNode }) {
   const authed = !!sessionStorage.getItem("token");
   const ruolo = sessionStorage.getItem("ruolo");
   if (!authed) return <Navigate to="/login" />;
@@ -41,7 +42,7 @@ function RequireStudente({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function RequireGestore({ children }: { children: React.ReactNode }) {
+function RequireGestore({ children }: { children: ReactNode }) {
   const authed = !!sessionStorage.getItem("token");
   const ruolo = sessionStorage.getItem("ruolo");
   if (!authed) return <Navigate to="/login" />;

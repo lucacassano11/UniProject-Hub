@@ -1,23 +1,40 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 import { listUtenti, blocca, sblocca, listEventi, type UtenteSicurezza, type Evento } from "../api/sicurezza";
+
+async function fetchSicurezzaData() {
+  const u = await listUtenti();
+  const ev = await listEventi(undefined, 50).catch(() => []);
+  return { u, ev };
+}
 
 export default function Sicurezza() {
   const [utenti, setUtenti] = useState<UtenteSicurezza[]>([]);
   const [eventi, setEventi] = useState<Evento[]>([]);
   const [err, setErr] = useState("");
 
-  async function load() {
-    setUtenti(await listUtenti());
-    setEventi(await listEventi(undefined, 50).catch(() => []));
-  }
-  useEffect(() => { load().catch(() => setErr("Errore nel caricamento")); }, []);
+  useEffect(() => {
+    let mounted = true;
+    fetchSicurezzaData().then(
+      ({ u, ev }) => {
+        if (!mounted) return;
+        setUtenti(u);
+        setEventi(ev);
+      },
+      () => {
+        if (mounted) setErr("Errore nel caricamento");
+      },
+    );
+    return () => { mounted = false; };
+  }, []);
 
   async function toggle(u: UtenteSicurezza) {
     setErr("");
     try {
       if (u.bloccato) await sblocca(u.email); else await blocca(u.email);
-      await load();
+      const res = await fetchSicurezzaData();
+      setUtenti(res.u);
+      setEventi(res.ev);
     } catch { setErr("Operazione non riuscita"); }
   }
 
@@ -70,13 +87,13 @@ export default function Sicurezza() {
   );
 }
 
-const th: React.CSSProperties = { padding: "6px 8px", fontWeight: 600, textTransform: "uppercase", fontSize: 11 };
-const td: React.CSSProperties = { padding: "8px 8px" };
-const lockBtn: React.CSSProperties = {
+const th: CSSProperties = { padding: "6px 8px", fontWeight: 600, textTransform: "uppercase", fontSize: 11 };
+const td: CSSProperties = { padding: "8px 8px" };
+const lockBtn: CSSProperties = {
   padding: "6px 12px", background: "transparent", color: "#ef4444",
   border: "1px solid #ef4444", borderRadius: 8, cursor: "pointer", fontSize: 12,
 };
-const unlockBtn: React.CSSProperties = {
+const unlockBtn: CSSProperties = {
   padding: "6px 12px", background: "var(--accent)", color: "#fff",
   border: "none", borderRadius: 8, cursor: "pointer", fontSize: 12,
 };

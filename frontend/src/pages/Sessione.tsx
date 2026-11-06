@@ -1,10 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useParams, Link } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import { getSession, listAppelli, addAppello, deleteAppello, setInizioAbstract,
   type Session, type Appello } from "../api/sessioni";
 import { panoramicaConsegne, approvaAbstract, rifiutaAbstract, valutaProgetto,
   type ConsegnaGruppo } from "../api/consegne";
+
+async function fetchSessioneData(id: string) {
+  const sess = await getSession(id);
+  const app = await listAppelli(id);
+  const cons = await panoramicaConsegne(id).catch(() => []);
+  return { sess, app, cons };
+}
 
 export default function Sessione() {
   const { id = "" } = useParams();
@@ -15,21 +22,35 @@ export default function Sessione() {
   const [inizio, setInizio] = useState("");
   const [consegne, setConsegne] = useState<ConsegnaGruppo[]>([]);
 
-  async function load() {
-    setSession(await getSession(id));
-    setAppelli(await listAppelli(id));
-    setConsegne(await panoramicaConsegne(id).catch(() => []));
+  useEffect(() => {
+    let mounted = true;
+    fetchSessioneData(id).then(
+      ({ sess, app, cons }) => {
+        if (!mounted) return;
+        setSession(sess);
+        setAppelli(app);
+        setConsegne(cons);
+      },
+      () => { /* silenzioso */ },
+    );
+    return () => { mounted = false; };
+  }, [id]);
+
+  async function reload() {
+    const { sess, app, cons } = await fetchSessioneData(id);
+    setSession(sess);
+    setAppelli(app);
+    setConsegne(cons);
   }
-  useEffect(() => { load().catch(() => {}); }, [id]);
 
   async function aggiungiAppello() {
     if (!dataOra || !scadenza) return;
     await addAppello(id, dataOra, scadenza);
     setDataOra(""); setScadenza("");
-    await load();
+    await reload();
   }
-  async function rimuoviAppello(idA: number) { await deleteAppello(idA); await load(); }
-  async function salvaInizio() { if (inizio) { await setInizioAbstract(id, inizio); await load(); } }
+  async function rimuoviAppello(idA: number) { await deleteAppello(idA); await reload(); }
+  async function salvaInizio() { if (inizio) { await setInizioAbstract(id, inizio); await reload(); } }
 
   if (!session) return <DashboardLayout active="sessioni"><p style={{ color: "var(--muted)" }}>Caricamento…</p></DashboardLayout>;
 
@@ -78,7 +99,7 @@ export default function Sessione() {
         <h3 style={{ fontSize: 16, marginBottom: 12 }}>Consegne dei gruppi</h3>
         {consegne.length === 0 && <p style={{ color: "var(--muted)", fontSize: 13 }}>Nessun gruppo in questa sessione.</p>}
         {consegne.map((c) => (
-          <ConsegnaRow key={c.idGruppo} c={c} onReload={load} />
+          <ConsegnaRow key={c.idGruppo} c={c} onReload={reload} />
         ))}
       </div>
     </DashboardLayout>
@@ -143,7 +164,7 @@ function Info({ val, lbl }: { val: number | string; lbl: string }) {
   );
 }
 
-const inputStyle: React.CSSProperties = {
+const inputStyle: CSSProperties = {
   padding: "8px 12px", background: "var(--bg)", border: "1px solid var(--border)",
   borderRadius: 8, color: "var(--text)", fontSize: 13, outline: "none",
 };
